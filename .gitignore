@@ -1,0 +1,10 @@
+target/
+.tools/
+*.class
+.idea/
+.vscode/
+*.iml
+.env
+.DS_Store
+logs/
+walletlah-data/

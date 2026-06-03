@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: walletlah-postgres
+    environment:
+      POSTGRES_DB: walletlah
+      POSTGRES_USER: walletlah
+      POSTGRES_PASSWORD: walletlah
+    ports:
+      - "5432:5432"
+    volumes:
+      - walletlah-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U walletlah -d walletlah"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: walletlah-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/walletlah
+      SPRING_DATASOURCE_USERNAME: walletlah
+      SPRING_DATASOURCE_PASSWORD: walletlah
+      TELEGRAM_BOT_ENABLED: ${TELEGRAM_BOT_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    ports:
+      - "8080:8080"
+
+volumes:
+  walletlah-postgres-data:
