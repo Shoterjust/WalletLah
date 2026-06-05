@@ -28,6 +28,26 @@ public class ExpenseService {
         return expenseRepository.save(expense);
     }
 
+    @Transactional
+    public Expense addReceiptScan(
+            WalletUser user,
+            AddExpenseRequest request,
+            String merchant,
+            String receiptImageFileId
+    ) {
+        Expense expense = new Expense(
+                user,
+                MoneyUtils.money(request.amount()),
+                request.category(),
+                request.description(),
+                request.expenseDate(),
+                merchant,
+                ExpenseSource.RECEIPT_SCAN,
+                receiptImageFileId
+        );
+        return expenseRepository.save(expense);
+    }
+
     @Transactional(readOnly = true)
     public List<RecentExpenseView> recent(WalletUser user, int limit) {
         return expenseRepository.findTop5ByUserOrderByExpenseDateDescCreatedAtDescIdDesc(user)

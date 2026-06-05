@@ -5,7 +5,9 @@ import com.walletlah.analytics.SpendingSummary;
 import com.walletlah.common.MoneyUtils;
 import com.walletlah.expense.Expense;
 import com.walletlah.expense.ExpenseCategory;
+import com.walletlah.expense.ExpenseSource;
 import com.walletlah.expense.RecentExpenseView;
+import com.walletlah.receipt.PendingExpense;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,7 @@ public class TelegramResponseFormatter {
                 + "/status\n"
                 + "/recent\n"
                 + "/budget 600\n"
+                + "Send a receipt photo to scan it\n"
                 + "/email you@example.com\n"
                 + "/delete_latest\n"
                 + "/category food\n"
@@ -48,6 +51,39 @@ public class TelegramResponseFormatter {
         return "Added: " + MoneyUtils.format(expense.getAmount()) + " "
                 + expense.getCategory().displayName() + " - " + expense.getDescription() + "\n\n"
                 + compactStatus(summary);
+    }
+
+    public String receiptScanned(PendingExpense pendingExpense) {
+        return "Receipt scanned.\n\n"
+                + pendingReceiptDetails(pendingExpense)
+                + "\n\n"
+                + pendingInstructions(pendingExpense);
+    }
+
+    public String receiptEdited(PendingExpense pendingExpense) {
+        return "Updated pending receipt.\n\n"
+                + pendingReceiptDetails(pendingExpense)
+                + "\n\n"
+                + pendingInstructions(pendingExpense);
+    }
+
+    public String pendingReceiptInstructions(PendingExpense pendingExpense) {
+        return "You have a pending receipt scan.\n\n"
+                + pendingReceiptDetails(pendingExpense)
+                + "\n\n"
+                + pendingInstructions(pendingExpense);
+    }
+
+    public String receiptSaved(Expense expense, SpendingSummary summary) {
+        return "Saved receipt expense: " + MoneyUtils.format(expense.getAmount()) + " "
+                + expense.getCategory().displayName() + " - " + expense.getDescription() + "\n\n"
+                + compactStatus(summary);
+    }
+
+    public String receiptCancelled(PendingExpense pendingExpense) {
+        return "Cancelled pending receipt from "
+                + (StringUtils.hasText(pendingExpense.getMerchant()) ? pendingExpense.getMerchant() : "receipt scan")
+                + ". Nothing was saved.";
     }
 
     public String status(SpendingSummary summary) {
@@ -69,6 +105,7 @@ public class TelegramResponseFormatter {
                     .append(MoneyUtils.format(expense.amount()))
                     .append(" ")
                     .append(expense.category().displayName())
+                    .append(expense.source() == ExpenseSource.RECEIPT_SCAN ? " [receipt]" : "")
                     .append(" - ")
                     .append(expense.description())
                     .append('\n');
@@ -128,5 +165,29 @@ public class TelegramResponseFormatter {
             builder.append("\n\nYou are over budget for this month.");
         }
         return builder.toString();
+    }
+
+    private String pendingReceiptDetails(PendingExpense pendingExpense) {
+        return "Merchant: " + valueOrMissing(pendingExpense.getMerchant()) + "\n"
+                + "Amount: " + (pendingExpense.getAmount() == null ? "Not found" : MoneyUtils.format(pendingExpense.getAmount())) + "\n"
+                + "Date: " + valueOrMissing(pendingExpense.getExpenseDate() == null ? null : pendingExpense.getExpenseDate().toString()) + "\n"
+                + "Category: " + (pendingExpense.getCategory() == null ? "Not found" : pendingExpense.getCategory().displayName()) + "\n"
+                + "Confidence: " + (pendingExpense.getConfidence() == null ? "Unknown" : pendingExpense.getConfidence().toPlainString() + "%");
+    }
+
+    private String pendingInstructions(PendingExpense pendingExpense) {
+        String amountNote = pendingExpense.getAmount() == null
+                ? "\n\nI could not confidently detect the amount. Reply with amount 7.20 before saving."
+                : "";
+        return "Reply YES to save, NO to cancel, or edit using:\n"
+                + "amount 7.20\n"
+                + "category food\n"
+                + "date 2026-06-05\n"
+                + "merchant Koufu"
+                + amountNote;
+    }
+
+    private String valueOrMissing(String value) {
+        return StringUtils.hasText(value) ? value : "Not found";
     }
 }

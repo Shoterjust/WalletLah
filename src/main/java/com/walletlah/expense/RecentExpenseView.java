@@ -7,14 +7,16 @@ public record RecentExpenseView(
         BigDecimal amount,
         ExpenseCategory category,
         String description,
-        LocalDate expenseDate
+        LocalDate expenseDate,
+        ExpenseSource source
 ) {
     public static RecentExpenseView from(Expense expense) {
         return new RecentExpenseView(
                 expense.getAmount(),
                 expense.getCategory(),
                 expense.getDescription(),
-                expense.getExpenseDate()
+                expense.getExpenseDate(),
+                expense.getSource()
         );
     }
 }

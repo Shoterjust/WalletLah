@@ -20,6 +20,7 @@
     <properties>
         <java.version>21</java.version>
         <telegrambots.version>9.6.0</telegrambots.version>
+        <aws.sdk.version>2.44.14</aws.sdk.version>
     </properties>
 
     <dependencies>
@@ -49,6 +50,17 @@
             <groupId>org.telegram</groupId>
             <artifactId>telegrambots-client</artifactId>
             <version>${telegrambots.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>textract</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>url-connection-client</artifactId>
+            <version>${aws.sdk.version}</version>
         </dependency>
 
         <dependency>

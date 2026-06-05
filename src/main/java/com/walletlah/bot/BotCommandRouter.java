@@ -7,8 +7,10 @@ import com.walletlah.common.UserFacingException;
 import com.walletlah.expense.AddExpenseParser;
 import com.walletlah.expense.ExpenseCategory;
 import com.walletlah.expense.ExpenseService;
+import com.walletlah.receipt.PendingExpenseService;
 import com.walletlah.user.UserService;
 import java.math.BigDecimal;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -24,6 +26,7 @@ public class BotCommandRouter {
     private final BudgetService budgetService;
     private final AnalyticsService analyticsService;
     private final AddExpenseParser addExpenseParser;
+    private final PendingExpenseService pendingExpenseService;
     private final TelegramResponseFormatter formatter;
 
     public BotCommandRouter(
@@ -32,6 +35,7 @@ public class BotCommandRouter {
             BudgetService budgetService,
             AnalyticsService analyticsService,
             AddExpenseParser addExpenseParser,
+            PendingExpenseService pendingExpenseService,
             TelegramResponseFormatter formatter
     ) {
         this.userService = userService;
@@ -39,6 +43,7 @@ public class BotCommandRouter {
         this.budgetService = budgetService;
         this.analyticsService = analyticsService;
         this.addExpenseParser = addExpenseParser;
+        this.pendingExpenseService = pendingExpenseService;
         this.formatter = formatter;
     }
 
@@ -49,6 +54,9 @@ public class BotCommandRouter {
         }
 
         try {
+            if (shouldHandleAsPendingReceiptReply(context.telegramUserId(), text)) {
+                return handlePendingReceiptReply(context, text);
+            }
             if (isCommand(text, "/start")) {
                 var user = userService.registerOrUpdate(context);
                 return formatter.start(user.getFirstName());
@@ -110,6 +118,34 @@ public class BotCommandRouter {
         var request = addExpenseParser.parse(body);
         var expense = expenseService.add(user, request);
         return formatter.expenseAdded(expense, analyticsService.monthlySummary(user));
+    }
+
+    private boolean shouldHandleAsPendingReceiptReply(Long telegramUserId, String text) {
+        if (text.startsWith("/")) {
+            return false;
+        }
+        return pendingExpenseService.looksLikePendingReply(text)
+                || pendingExpenseService.activePending(telegramUserId).isPresent();
+    }
+
+    private String handlePendingReceiptReply(TelegramUserContext context, String text) {
+        var user = userService.registerOrUpdate(context);
+        String normalized = text.trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("yes") || normalized.equals("y")) {
+            var expense = pendingExpenseService.confirm(user);
+            return formatter.receiptSaved(expense, analyticsService.monthlySummary(user));
+        }
+        if (normalized.equals("no") || normalized.equals("n")) {
+            var pending = pendingExpenseService.cancel(context.telegramUserId());
+            return formatter.receiptCancelled(pending);
+        }
+        if (pendingExpenseService.looksLikePendingReply(text)) {
+            var pending = pendingExpenseService.edit(context.telegramUserId(), text);
+            return formatter.receiptEdited(pending);
+        }
+        return pendingExpenseService.activePending(context.telegramUserId())
+                .map(formatter::pendingReceiptInstructions)
+                .orElse("No pending receipt scan. Send a receipt photo first, or log manually with /add 5.50 food chicken rice");
     }
 
     private BigDecimal parseBudget(String body) {

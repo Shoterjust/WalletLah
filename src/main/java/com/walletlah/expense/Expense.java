@@ -41,6 +41,15 @@ public class Expense {
     @Column(name = "expense_date", nullable = false)
     private LocalDate expenseDate;
 
+    private String merchant;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ExpenseSource source = ExpenseSource.MANUAL;
+
+    @Column(name = "receipt_image_file_id")
+    private String receiptImageFileId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -53,6 +62,27 @@ public class Expense {
         this.category = category;
         this.description = description;
         this.expenseDate = expenseDate;
+        this.source = ExpenseSource.MANUAL;
+    }
+
+    public Expense(
+            WalletUser user,
+            BigDecimal amount,
+            ExpenseCategory category,
+            String description,
+            LocalDate expenseDate,
+            String merchant,
+            ExpenseSource source,
+            String receiptImageFileId
+    ) {
+        this.user = user;
+        this.amount = amount;
+        this.category = category;
+        this.description = description;
+        this.expenseDate = expenseDate;
+        this.merchant = merchant;
+        this.source = source;
+        this.receiptImageFileId = receiptImageFileId;
     }
 
     @PrePersist
@@ -82,6 +112,18 @@ public class Expense {
 
     public LocalDate getExpenseDate() {
         return expenseDate;
+    }
+
+    public String getMerchant() {
+        return merchant;
+    }
+
+    public ExpenseSource getSource() {
+        return source;
+    }
+
+    public String getReceiptImageFileId() {
+        return receiptImageFileId;
     }
 
     public Instant getCreatedAt() {

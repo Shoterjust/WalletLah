@@ -33,3 +33,10 @@ walletlah:
   email-ingest:
     enabled: ${EMAIL_INGEST_ENABLED:false}
     token: ${EMAIL_INGEST_TOKEN:}
+  receipts:
+    enabled: ${RECEIPT_SCAN_ENABLED:false}
+    aws-region: ${AWS_REGION:ap-southeast-1}
+    max-file-size-bytes: ${RECEIPT_SCAN_MAX_FILE_SIZE_BYTES:5000000}
+    min-confidence: ${RECEIPT_SCAN_MIN_CONFIDENCE:70}
+    pending-expiry-minutes: ${RECEIPT_PENDING_EXPIRY_MINUTES:30}
+    rate-limit-seconds: ${RECEIPT_SCAN_RATE_LIMIT_SECONDS:20}

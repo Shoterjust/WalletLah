@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 public enum ExpenseCategory {
     FOOD("Food", Set.of("food", "eat", "meal", "lunch", "dinner", "breakfast", "kopi", "coffee")),
     TRANSPORT("Transport", Set.of("transport", "mrt", "bus", "grab", "taxi", "gojek")),
+    GROCERIES("Groceries", Set.of("groceries", "grocery", "supermarket", "fairprice", "sheng", "siong", "cold", "storage", "giant")),
     SCHOOL("School", Set.of("school", "uni", "university", "notes", "books", "printing")),
     SUBSCRIPTIONS("Subscriptions", Set.of("subscriptions", "subscription", "sub", "netflix", "spotify")),
     SHOPPING("Shopping", Set.of("shopping", "shop", "clothes", "shopee", "lazada")),
