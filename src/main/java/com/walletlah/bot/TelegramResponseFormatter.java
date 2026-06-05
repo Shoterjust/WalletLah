@@ -30,12 +30,18 @@ public class TelegramResponseFormatter {
                 + "/status\n"
                 + "/recent\n"
                 + "/budget 600\n"
+                + "/email you@example.com\n"
                 + "/delete_latest\n"
                 + "/category food\n"
                 + "/categories\n\n"
                 + "Fast logging also works:\n"
                 + "5.50 food chicken rice\n"
                 + "food 5.50 chicken rice";
+    }
+
+    public String emailLinked(String emailAddress) {
+        return "Email linked for auto-logging: " + emailAddress + "\n\n"
+                + "Forwarded receipt and card transaction emails can now be matched to this WalletLah account.";
     }
 
     public String expenseAdded(Expense expense, SpendingSummary summary) {

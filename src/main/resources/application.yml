@@ -30,3 +30,6 @@ walletlah:
   bot:
     enabled: ${TELEGRAM_BOT_ENABLED:false}
     token: ${TELEGRAM_BOT_TOKEN:}
+  email-ingest:
+    enabled: ${EMAIL_INGEST_ENABLED:false}
+    token: ${EMAIL_INGEST_TOKEN:}

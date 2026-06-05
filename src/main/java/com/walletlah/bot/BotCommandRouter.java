@@ -75,6 +75,10 @@ public class BotCommandRouter {
                 return "Budget set for this month: " + MoneyUtils.format(budget.getAmount()) + "\n\n"
                         + formatter.status(analyticsService.monthlySummary(user));
             }
+            if (isCommand(text, "/email")) {
+                var user = userService.linkEmail(context, commandBody(text));
+                return formatter.emailLinked(user.getEmailAddress());
+            }
             if (isCommand(text, "/delete_latest")) {
                 var user = userService.registerOrUpdate(context);
                 return formatter.deleted(expenseService.deleteLatest(user));

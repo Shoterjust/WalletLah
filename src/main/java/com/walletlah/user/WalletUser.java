@@ -29,6 +29,9 @@ public class WalletUser {
     @Column(name = "first_name")
     private String firstName;
 
+    @Column(name = "email_address")
+    private String emailAddress;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -63,6 +66,10 @@ public class WalletUser {
         this.firstName = firstName;
     }
 
+    public void updateEmailAddress(String emailAddress) {
+        this.emailAddress = emailAddress;
+    }
+
     public Long getId() {
         return id;
     }
@@ -81,6 +88,10 @@ public class WalletUser {
 
     public String getFirstName() {
         return firstName;
+    }
+
+    public String getEmailAddress() {
+        return emailAddress;
     }
 
     public Instant getCreatedAt() {

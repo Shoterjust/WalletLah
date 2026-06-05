@@ -11,6 +11,7 @@ WalletLah is a Telegram-first expense tracker for Singapore university students.
 /status
 /recent
 /budget 600
+/email you@example.com
 /delete_latest
 /category food
 /categories
@@ -36,6 +37,56 @@ docker compose up --build
 ```
 
 The bot uses long polling for the MVP, so no public HTTPS URL is needed for local development.
+
+## Email Receipt Auto-Logging
+
+WalletLah can auto-log expenses from forwarded receipt or card transaction emails.
+
+MVP flow:
+
+1. Link your email in Telegram:
+
+```text
+/email you@example.com
+```
+
+2. Enable the email ingest endpoint in `.env`:
+
+```env
+EMAIL_INGEST_ENABLED=true
+EMAIL_INGEST_TOKEN=replace-with-a-long-random-secret
+```
+
+3. Start the app:
+
+```powershell
+docker compose up --build
+```
+
+4. Send a test transaction email payload:
+
+```bash
+curl -X POST http://localhost:8080/api/email-expenses \
+  -H "Content-Type: application/json" \
+  -H "X-WalletLah-Ingest-Token: replace-with-a-long-random-secret" \
+  -d '{
+    "recipientEmail": "you@example.com",
+    "sender": "alerts@bank.example",
+    "subject": "Card transaction alert",
+    "body": "You have spent SGD 12.30 at MCDONALD'\''S on 05 Jun 2026. Available balance: SGD 800.00",
+    "messageId": "demo-message-1"
+  }'
+```
+
+5. Check Telegram:
+
+```text
+/recent
+```
+
+The endpoint is intended to be called by an email automation tool such as Make, Zapier, or Google Apps Script. The automation should send the original recipient email, subject, body, sender, and a stable message ID. WalletLah uses the message ID to avoid logging the same email twice.
+
+For production, the app must be deployed at a public HTTPS URL before an email automation service can call `/api/email-expenses`.
 
 ## Run Without Telegram
 
@@ -66,6 +117,7 @@ Flyway creates:
 - `wallet_users`
 - `expenses`
 - `monthly_budgets`
+- `email_expense_ingests`
 
 Telegram user ID is the MVP identity. A separate login system can be added later if WalletLah grows into a web dashboard.
 
@@ -77,6 +129,7 @@ src/main/java/com/walletlah
   bot/         Telegram bot, command router, response formatting
   budget/      Monthly budget entity, repository, service
   common/      Shared money/date/error helpers
+  email/       Receipt and card email ingest endpoint and parser
   expense/     Expense entity, parser, repository, service
   user/        Telegram user entity, repository, service
 ```
