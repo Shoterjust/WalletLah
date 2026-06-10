@@ -31,10 +31,13 @@ public class TelegramResponseFormatter {
         return "WalletLah commands:\n\n"
                 + "/add 5.50 food chicken rice\n"
                 + "/status\n"
+                + "/summary\n"
                 + "/recent\n"
+                + "/recent 10\n"
                 + "/edit 12 amount 7.20\n"
                 + "/edit_latest category food\n"
                 + "/budget 600\n"
+                + "/budget\n"
                 + "/recurring_add 14.99 subscriptions Spotify monthly\n"
                 + "/recurring\n"
                 + "/recurring_delete 3\n"
@@ -42,7 +45,8 @@ public class TelegramResponseFormatter {
                 + "/email you@example.com\n"
                 + "/delete_latest\n"
                 + "/category food\n"
-                + "/categories\n\n"
+                + "/categories\n"
+                + "/breakdown\n\n"
                 + "Fast logging also works:\n"
                 + "5.50 food chicken rice\n"
                 + "food 5.50 chicken rice";
@@ -101,6 +105,17 @@ public class TelegramResponseFormatter {
 
     public String status(SpendingSummary summary) {
         return compactStatus(summary);
+    }
+
+    public String budgetStatus(SpendingSummary summary) {
+        if (summary.monthlyBudget() == null) {
+            return "No budget set for " + summary.monthLabel() + " yet.\n\n"
+                    + "Set one with /budget 600\n\n"
+                    + compactStatus(summary);
+        }
+        return "Current budget for " + summary.monthLabel() + ": "
+                + MoneyUtils.format(summary.monthlyBudget()) + "\n\n"
+                + compactStatus(summary);
     }
 
     public String recent(List<RecentExpenseView> expenses) {
@@ -211,20 +226,26 @@ public class TelegramResponseFormatter {
     private String compactStatus(SpendingSummary summary) {
         StringBuilder builder = new StringBuilder();
         builder.append(summary.monthLabel()).append(" spending: ")
-                .append(MoneyUtils.format(summary.totalSpent()));
+                .append(MoneyUtils.format(summary.totalSpent()))
+                .append("\nAvg/day so far: ")
+                .append(MoneyUtils.format(summary.averageDailySpend()))
+                .append("\nDays left: ")
+                .append(summary.daysLeftInMonth());
 
         if (summary.monthlyBudget() == null) {
             builder.append("\n\nNo budget set yet.\nSet one with /budget 600");
             return builder.toString();
         }
 
-        builder.append(" / ").append(MoneyUtils.format(summary.monthlyBudget()))
+        builder.append("\nBudget: ").append(MoneyUtils.format(summary.monthlyBudget()))
+                .append("\nBudget used: ").append(summary.budgetUsedPercentage().toPlainString()).append("%")
                 .append("\nRemaining: ").append(MoneyUtils.format(summary.remainingBudget()))
-                .append("\nSafe daily spend: ").append(MoneyUtils.format(summary.safeDailySpend()))
-                .append("\nDays left: ").append(summary.daysLeftInMonth());
+                .append("\nSafe daily spend: ").append(MoneyUtils.format(summary.safeDailySpend()));
 
         if (summary.remainingBudget().compareTo(BigDecimal.ZERO) < 0) {
             builder.append("\n\nYou are over budget for this month.");
+        } else if (summary.averageDailySpend().compareTo(summary.safeDailySpend()) > 0) {
+            builder.append("\n\nYour average daily spend is above the safe daily amount.");
         }
         return builder.toString();
     }

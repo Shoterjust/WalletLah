@@ -18,6 +18,17 @@ public final class AnalyticsCalculator {
         return Math.toIntExact(ChronoUnit.DAYS.between(today, today.withDayOfMonth(today.lengthOfMonth())) + 1);
     }
 
+    public static int daysElapsedInMonth(LocalDate today) {
+        return today.getDayOfMonth();
+    }
+
+    public static BigDecimal averageDailySpend(BigDecimal totalSpent, int daysElapsedInMonth) {
+        if (daysElapsedInMonth <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return totalSpent.divide(BigDecimal.valueOf(daysElapsedInMonth), 2, RoundingMode.HALF_UP);
+    }
+
     public static BigDecimal safeDailySpend(BigDecimal remainingBudget, int daysLeftInMonth) {
         if (remainingBudget.compareTo(BigDecimal.ZERO) <= 0 || daysLeftInMonth <= 0) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);

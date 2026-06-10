@@ -76,13 +76,13 @@ public class BotCommandRouter {
             if (isCommand(text, "/add")) {
                 return addExpense(context, commandBody(text));
             }
-            if (isCommand(text, "/status")) {
+            if (isCommand(text, "/status") || isCommand(text, "/summary")) {
                 var user = userService.registerOrUpdate(context);
                 return formatter.status(analyticsService.monthlySummary(user));
             }
             if (isCommand(text, "/recent")) {
                 var user = userService.registerOrUpdate(context);
-                return formatter.recent(expenseService.recent(user, 5));
+                return formatter.recent(expenseService.recent(user, parseRecentLimit(commandBody(text))));
             }
             if (isCommand(text, "/edit")) {
                 return editExpense(context, commandBody(text));
@@ -92,6 +92,9 @@ public class BotCommandRouter {
             }
             if (isCommand(text, "/budget")) {
                 var user = userService.registerOrUpdate(context);
+                if (!StringUtils.hasText(commandBody(text))) {
+                    return formatter.budgetStatus(analyticsService.monthlySummary(user));
+                }
                 BigDecimal amount = parseBudget(commandBody(text));
                 var budget = budgetService.setCurrentMonthBudget(user, amount);
                 return "Budget set for this month: " + MoneyUtils.format(budget.getAmount()) + "\n\n"
@@ -125,7 +128,7 @@ public class BotCommandRouter {
                         .orElseThrow(() -> new UserFacingException("Use /category food or /categories to see valid categories."));
                 return formatter.category(category, analyticsService.categorySummary(user, category));
             }
-            if (isCommand(text, "/categories")) {
+            if (isCommand(text, "/categories") || isCommand(text, "/breakdown")) {
                 var user = userService.registerOrUpdate(context);
                 return formatter.categories(analyticsService.categoryBreakdown(user));
             }
@@ -202,13 +205,28 @@ public class BotCommandRouter {
             throw new UserFacingException("Use /budget 600 to set your monthly budget.");
         }
         try {
-            BigDecimal amount = new BigDecimal(body.trim());
-            if (amount.compareTo(BigDecimal.ZERO) < 0) {
-                throw new UserFacingException("Budget cannot be negative.");
+            BigDecimal amount = new BigDecimal(body.replace("S$", "").replace("$", "").trim());
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new UserFacingException("Budget must be more than zero.");
             }
             return amount;
         } catch (NumberFormatException e) {
             throw new UserFacingException("I could not read that budget. Try /budget 600");
+        }
+    }
+
+    private int parseRecentLimit(String body) {
+        if (!StringUtils.hasText(body)) {
+            return 5;
+        }
+        try {
+            int limit = Integer.parseInt(body.trim());
+            if (limit <= 0) {
+                throw new UserFacingException("Use /recent or /recent 10");
+            }
+            return Math.min(limit, 20);
+        } catch (NumberFormatException e) {
+            throw new UserFacingException("Use /recent or /recent 10");
         }
     }
 

@@ -9,10 +9,13 @@ WalletLah is a Telegram-first expense tracker for Singapore university students.
 /help
 /add 5.50 food chicken rice
 /status
+/summary
 /recent
+/recent 10
 /edit 12 amount 7.20
 /edit_latest category food
 /budget 600
+/budget
 /email you@example.com
 /recurring_add 14.99 subscriptions Spotify monthly
 /recurring
@@ -20,6 +23,7 @@ WalletLah is a Telegram-first expense tracker for Singapore university students.
 /delete_latest
 /category food
 /categories
+/breakdown
 ```
 
 You can also send a receipt photo. WalletLah scans it, creates a pending expense, and asks for confirmation before saving.
@@ -44,6 +48,52 @@ docker compose up --build
 ```
 
 The bot uses long polling for the MVP, so no public HTTPS URL is needed for local development.
+
+## Budget And Analytics
+
+Set this month's budget:
+
+```text
+/budget 600
+```
+
+View the current budget without changing it:
+
+```text
+/budget
+```
+
+View the monthly summary:
+
+```text
+/status
+/summary
+```
+
+The summary shows:
+
+- Total spending this month
+- Average daily spend so far
+- Days left in the month
+- Monthly budget
+- Budget used percentage
+- Remaining budget
+- Safe daily spend for the rest of the month
+
+Category analytics:
+
+```text
+/categories
+/breakdown
+/category food
+```
+
+Recent expenses default to five rows, but you can request up to twenty:
+
+```text
+/recent
+/recent 10
+```
 
 ## Editing Expenses
 
@@ -286,6 +336,29 @@ If Maven is not installed, Docker can still build the project once Docker Deskto
 docker compose build app
 ```
 
+## Deployment
+
+The production MVP is designed to run as a Dockerized Spring Boot service on Railway with Railway PostgreSQL.
+
+Use the detailed guide in [docs/deployment-railway.md](docs/deployment-railway.md).
+
+Minimum Railway app variables:
+
+```env
+TELEGRAM_BOT_ENABLED=true
+TELEGRAM_BOT_TOKEN=replace-with-botfather-token
+WALLETLAH_ZONE_ID=Asia/Singapore
+SPRING_DATASOURCE_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+SPRING_DATASOURCE_USERNAME=${{Postgres.PGUSER}}
+SPRING_DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
+```
+
+Health check:
+
+```text
+GET /actuator/health
+```
+
 ## Database
 
 Flyway creates:
@@ -394,7 +467,10 @@ Good demo screenshots:
 - `/add 5.50 food chicken rice`
 - `/status`
 - `/recent`
+- `/edit_latest amount 7.20`
 - `/categories`
+- `/recurring_add 14.99 subscriptions Spotify monthly`
+- `/recurring`
 - `/delete_latest`
 
 Technical decisions to mention:

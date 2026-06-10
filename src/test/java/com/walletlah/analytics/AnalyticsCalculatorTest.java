@@ -15,6 +15,19 @@ class AnalyticsCalculatorTest {
     }
 
     @Test
+    void calculatesDaysElapsedInMonth() {
+        assertThat(AnalyticsCalculator.daysElapsedInMonth(LocalDate.of(2026, 6, 1))).isEqualTo(1);
+        assertThat(AnalyticsCalculator.daysElapsedInMonth(LocalDate.of(2026, 6, 10))).isEqualTo(10);
+    }
+
+    @Test
+    void calculatesAverageDailySpend() {
+        BigDecimal averageDailySpend = AnalyticsCalculator.averageDailySpend(new BigDecimal("155.00"), 10);
+
+        assertThat(averageDailySpend).isEqualByComparingTo(new BigDecimal("15.50"));
+    }
+
+    @Test
     void calculatesSafeDailySpend() {
         BigDecimal safeDailySpend = AnalyticsCalculator.safeDailySpend(new BigDecimal("300.00"), 30);
 

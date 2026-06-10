@@ -8,6 +8,9 @@ public record SpendingSummary(
         BigDecimal monthlyBudget,
         BigDecimal remainingBudget,
         int daysLeftInMonth,
-        BigDecimal safeDailySpend
+        BigDecimal safeDailySpend,
+        int daysElapsedInMonth,
+        BigDecimal averageDailySpend,
+        BigDecimal budgetUsedPercentage
 ) {
 }

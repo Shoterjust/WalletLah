@@ -1,0 +1,11 @@
+.git
+.idea
+.vscode
+.codex
+.agents
+target
+*.log
+.env
+.env.*
+!.env.example
+README.local.md

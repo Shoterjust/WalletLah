@@ -5,13 +5,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
-    List<Expense> findTop5ByUserOrderByExpenseDateDescCreatedAtDescIdDesc(WalletUser user);
+    List<Expense> findByUserOrderByExpenseDateDescCreatedAtDescIdDesc(WalletUser user, Pageable pageable);
 
     Optional<Expense> findFirstByUserOrderByCreatedAtDescIdDesc(WalletUser user);
 

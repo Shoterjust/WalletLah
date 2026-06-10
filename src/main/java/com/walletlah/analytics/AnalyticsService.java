@@ -32,21 +32,35 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public SpendingSummary monthlySummary(WalletUser user) {
         YearMonth currentMonth = YearMonth.now(clock);
+        LocalDate today = LocalDate.now(clock);
         MonthRange range = MonthRange.from(currentMonth);
         BigDecimal totalSpent = MoneyUtils.money(expenseRepository.sumAmountForUserBetween(
                 user,
                 range.startInclusive(),
                 range.endExclusive()
         ));
+        int daysLeft = AnalyticsCalculator.daysLeftInMonth(today);
+        int daysElapsed = AnalyticsCalculator.daysElapsedInMonth(today);
+        BigDecimal averageDailySpend = AnalyticsCalculator.averageDailySpend(totalSpent, daysElapsed);
 
         var budget = budgetService.getCurrentMonthBudget(user).orElse(null);
         if (budget == null) {
-            return new SpendingSummary(monthLabel(currentMonth), totalSpent, null, null, 0, BigDecimal.ZERO);
+            return new SpendingSummary(
+                    monthLabel(currentMonth),
+                    totalSpent,
+                    null,
+                    null,
+                    daysLeft,
+                    BigDecimal.ZERO,
+                    daysElapsed,
+                    averageDailySpend,
+                    BigDecimal.ZERO
+            );
         }
 
         BigDecimal remaining = AnalyticsCalculator.remaining(budget.getAmount(), totalSpent);
-        int daysLeft = AnalyticsCalculator.daysLeftInMonth(LocalDate.now(clock));
         BigDecimal safeDailySpend = AnalyticsCalculator.safeDailySpend(remaining, daysLeft);
+        BigDecimal budgetUsedPercentage = AnalyticsCalculator.percentage(totalSpent, budget.getAmount());
 
         return new SpendingSummary(
                 monthLabel(currentMonth),
@@ -54,7 +68,10 @@ public class AnalyticsService {
                 budget.getAmount(),
                 remaining,
                 daysLeft,
-                safeDailySpend
+                safeDailySpend,
+                daysElapsed,
+                averageDailySpend,
+                budgetUsedPercentage
         );
     }
 

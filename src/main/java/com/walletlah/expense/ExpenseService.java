@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -71,9 +72,9 @@ public class ExpenseService {
 
     @Transactional(readOnly = true)
     public List<RecentExpenseView> recent(WalletUser user, int limit) {
-        return expenseRepository.findTop5ByUserOrderByExpenseDateDescCreatedAtDescIdDesc(user)
+        int safeLimit = Math.max(1, Math.min(limit, 20));
+        return expenseRepository.findByUserOrderByExpenseDateDescCreatedAtDescIdDesc(user, PageRequest.of(0, safeLimit))
                 .stream()
-                .limit(limit)
                 .map(RecentExpenseView::from)
                 .toList();
     }
