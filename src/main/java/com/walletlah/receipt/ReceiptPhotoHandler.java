@@ -9,7 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.PhotoSize;
+import org.telegram.telegrambots.meta.api.objects.photo.PhotoSize;
 
 @Component
 @ConditionalOnProperty(name = "walletlah.bot.enabled", havingValue = "true")
