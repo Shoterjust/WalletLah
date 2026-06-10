@@ -8,6 +8,7 @@ import com.walletlah.expense.ExpenseCategory;
 import com.walletlah.expense.ExpenseSource;
 import com.walletlah.expense.RecentExpenseView;
 import com.walletlah.receipt.PendingExpense;
+import com.walletlah.recurring.RecurringExpense;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,12 @@ public class TelegramResponseFormatter {
                 + "/add 5.50 food chicken rice\n"
                 + "/status\n"
                 + "/recent\n"
+                + "/edit 12 amount 7.20\n"
+                + "/edit_latest category food\n"
                 + "/budget 600\n"
+                + "/recurring_add 14.99 subscriptions Spotify monthly\n"
+                + "/recurring\n"
+                + "/recurring_delete 3\n"
                 + "Send a receipt photo to scan it\n"
                 + "/email you@example.com\n"
                 + "/delete_latest\n"
@@ -49,6 +55,13 @@ public class TelegramResponseFormatter {
 
     public String expenseAdded(Expense expense, SpendingSummary summary) {
         return "Added: " + MoneyUtils.format(expense.getAmount()) + " "
+                + expense.getCategory().displayName() + " - " + expense.getDescription() + "\n\n"
+                + compactStatus(summary);
+    }
+
+    public String expenseEdited(Expense expense, SpendingSummary summary) {
+        return "Updated expense #" + expense.getId() + ": "
+                + MoneyUtils.format(expense.getAmount()) + " "
                 + expense.getCategory().displayName() + " - " + expense.getDescription() + "\n\n"
                 + compactStatus(summary);
     }
@@ -99,18 +112,20 @@ public class TelegramResponseFormatter {
         int index = 1;
         for (RecentExpenseView expense : expenses) {
             builder.append(index++)
-                    .append(". ")
+                    .append(". #")
+                    .append(expense.id())
+                    .append(" ")
                     .append(expense.expenseDate())
                     .append(" - ")
                     .append(MoneyUtils.format(expense.amount()))
                     .append(" ")
                     .append(expense.category().displayName())
-                    .append(expense.source() == ExpenseSource.RECEIPT_SCAN ? " [receipt]" : "")
+                    .append(sourceLabel(expense.source()))
                     .append(" - ")
                     .append(expense.description())
                     .append('\n');
         }
-        builder.append("\nUndo your latest entry with /delete_latest");
+        builder.append("\nEdit with /edit 12 amount 7.20 or undo latest with /delete_latest");
         return builder.toString().trim();
     }
 
@@ -144,6 +159,53 @@ public class TelegramResponseFormatter {
                     .append("%)\n");
         }
         return builder.toString().trim();
+    }
+
+    public String recurringAdded(RecurringExpense recurringExpense) {
+        return "Recurring expense added: #"
+                + recurringExpense.getId()
+                + " "
+                + MoneyUtils.format(recurringExpense.getAmount())
+                + " "
+                + recurringExpense.getCategory().displayName()
+                + " - "
+                + recurringExpense.getDescription()
+                + "\nFrequency: "
+                + recurringExpense.getFrequency()
+                + "\nNext run: "
+                + recurringExpense.getNextRunDate();
+    }
+
+    public String recurringList(List<RecurringExpense> recurringExpenses) {
+        if (recurringExpenses.isEmpty()) {
+            return "No active recurring expenses.\n\nAdd one with:\n/recurring_add 14.99 subscriptions Spotify monthly";
+        }
+
+        StringBuilder builder = new StringBuilder("Active recurring expenses:\n");
+        for (RecurringExpense recurringExpense : recurringExpenses) {
+            builder.append("#")
+                    .append(recurringExpense.getId())
+                    .append(" ")
+                    .append(MoneyUtils.format(recurringExpense.getAmount()))
+                    .append(" ")
+                    .append(recurringExpense.getCategory().displayName())
+                    .append(" - ")
+                    .append(recurringExpense.getDescription())
+                    .append(" | ")
+                    .append(recurringExpense.getFrequency())
+                    .append(" | next ")
+                    .append(recurringExpense.getNextRunDate())
+                    .append('\n');
+        }
+        builder.append("\nDelete one with /recurring_delete 3");
+        return builder.toString().trim();
+    }
+
+    public String recurringCancelled(RecurringExpense recurringExpense) {
+        return "Recurring expense cancelled: #"
+                + recurringExpense.getId()
+                + " "
+                + recurringExpense.getDescription();
     }
 
     private String compactStatus(SpendingSummary summary) {
@@ -189,5 +251,15 @@ public class TelegramResponseFormatter {
 
     private String valueOrMissing(String value) {
         return StringUtils.hasText(value) ? value : "Not found";
+    }
+
+    private String sourceLabel(ExpenseSource source) {
+        if (source == ExpenseSource.RECEIPT_SCAN) {
+            return " [receipt]";
+        }
+        if (source == ExpenseSource.RECURRING) {
+            return " [recurring]";
+        }
+        return "";
     }
 }

@@ -10,8 +10,13 @@ WalletLah is a Telegram-first expense tracker for Singapore university students.
 /add 5.50 food chicken rice
 /status
 /recent
+/edit 12 amount 7.20
+/edit_latest category food
 /budget 600
 /email you@example.com
+/recurring_add 14.99 subscriptions Spotify monthly
+/recurring
+/recurring_delete 3
 /delete_latest
 /category food
 /categories
@@ -39,6 +44,75 @@ docker compose up --build
 ```
 
 The bot uses long polling for the MVP, so no public HTTPS URL is needed for local development.
+
+## Editing Expenses
+
+`/recent` shows database IDs so specific expenses can be edited:
+
+```text
+Recent expenses:
+1. #12 2026-06-10 - S$5.50 Food - chicken rice
+```
+
+Edit by ID:
+
+```text
+/edit 12 amount 7.20
+/edit 12 category food
+/edit 12 description chicken rice add egg
+/edit 12 date 2026-06-05
+/edit 12 merchant Koufu
+```
+
+Edit the most recently created expense:
+
+```text
+/edit_latest amount 7.20
+/edit_latest category transport
+```
+
+Editable fields:
+
+- `amount`
+- `category`
+- `description`
+- `date`
+- `merchant`
+
+After an edit, WalletLah returns the updated expense and refreshed monthly status.
+
+## Recurring Expenses
+
+Recurring expenses generate normal expenses automatically. The scheduler runs daily at `00:05` Singapore time.
+
+Add a recurring expense:
+
+```text
+/recurring_add 14.99 subscriptions Spotify monthly
+/recurring_add 80 transport concession monthly 2026-07-01
+```
+
+Format:
+
+```text
+/recurring_add <amount> <category> <description> <daily|weekly|monthly> [next-run-date]
+```
+
+If `next-run-date` is omitted, WalletLah starts from today.
+
+List active recurring expenses:
+
+```text
+/recurring
+```
+
+Cancel one:
+
+```text
+/recurring_delete 3
+```
+
+Generated recurring expenses appear in `/recent` with `[recurring]`.
 
 ## Receipt Photo Scanning
 
@@ -221,14 +295,21 @@ Flyway creates:
 - `monthly_budgets`
 - `email_expense_ingests`
 - `pending_expenses`
+- `recurring_expenses`
 
 Telegram user ID is the MVP identity. A separate login system can be added later if WalletLah grows into a web dashboard.
 
 Receipt scanning adds these expense fields:
 
 - `merchant`
-- `source`, either `MANUAL` or `RECEIPT_SCAN`
+- `source`, such as `MANUAL`, `RECEIPT_SCAN`, or `RECURRING`
 - `receipt_image_file_id`
+
+Recurring expenses add:
+
+- `recurring_expenses`
+- `expenses.recurring_expense_id`
+- `source = RECURRING` for generated rows
 
 Pending receipt statuses:
 
@@ -247,6 +328,7 @@ src/main/java/com/walletlah
   common/      Shared money/date/error helpers
   email/       Receipt and card email ingest endpoint and parser
   expense/     Expense entity, parser, repository, service
+  recurring/   Recurring expense rules and scheduler
   receipt/     Receipt photo OCR, category inference, pending confirmation
   user/        Telegram user entity, repository, service
 ```
@@ -280,6 +362,23 @@ Phase 6: cleanup jobs, more tests, and production deployment notes.
 - Manual test with blurry receipts, missing totals, and multiple total-like values.
 - Manual test `YES` with no pending expense.
 - Manual test invalid edits such as `amount abc` and `date tomorrow`.
+
+## Sprint Testing Checklist
+
+Editing:
+
+- Add an expense with `/add 5.50 food chicken rice`.
+- Run `/recent` and note the `#id`.
+- Run `/edit <id> amount 7.20`.
+- Run `/edit_latest category transport`.
+- Run `/status` and verify totals changed.
+
+Recurring:
+
+- Run `/recurring_add 14.99 subscriptions Spotify monthly`.
+- Run `/recurring` and verify the rule appears.
+- Run `/recurring_delete <id>` and verify it disappears from `/recurring`.
+- Add a rule with today's date and verify the scheduler generates it after midnight, or temporarily test generation through service tests during development.
 
 ## Portfolio Notes
 

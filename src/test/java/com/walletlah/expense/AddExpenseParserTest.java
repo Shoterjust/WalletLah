@@ -7,6 +7,7 @@ import com.walletlah.common.UserFacingException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ class AddExpenseParserTest {
         assertThat(request.amount()).isEqualByComparingTo(new BigDecimal("5.50"));
         assertThat(request.category()).isEqualTo(ExpenseCategory.FOOD);
         assertThat(request.description()).isEqualTo("chicken rice");
-        assertThat(request.expenseDate()).isEqualTo("2026-06-01");
+        assertThat(request.expenseDate()).isEqualTo(LocalDate.of(2026, 6, 1));
     }
 
     @Test

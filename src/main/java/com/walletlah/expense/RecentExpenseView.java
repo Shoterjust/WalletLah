@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record RecentExpenseView(
+        Long id,
         BigDecimal amount,
         ExpenseCategory category,
         String description,
@@ -12,6 +13,7 @@ public record RecentExpenseView(
 ) {
     public static RecentExpenseView from(Expense expense) {
         return new RecentExpenseView(
+                expense.getId(),
                 expense.getAmount(),
                 expense.getCategory(),
                 expense.getDescription(),

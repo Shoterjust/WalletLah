@@ -8,6 +8,8 @@ import com.walletlah.expense.AddExpenseParser;
 import com.walletlah.expense.ExpenseCategory;
 import com.walletlah.expense.ExpenseService;
 import com.walletlah.receipt.PendingExpenseService;
+import com.walletlah.recurring.AddRecurringExpenseParser;
+import com.walletlah.recurring.RecurringExpenseService;
 import com.walletlah.user.UserService;
 import java.math.BigDecimal;
 import java.util.Locale;
@@ -27,6 +29,8 @@ public class BotCommandRouter {
     private final AnalyticsService analyticsService;
     private final AddExpenseParser addExpenseParser;
     private final PendingExpenseService pendingExpenseService;
+    private final AddRecurringExpenseParser addRecurringExpenseParser;
+    private final RecurringExpenseService recurringExpenseService;
     private final TelegramResponseFormatter formatter;
 
     public BotCommandRouter(
@@ -36,6 +40,8 @@ public class BotCommandRouter {
             AnalyticsService analyticsService,
             AddExpenseParser addExpenseParser,
             PendingExpenseService pendingExpenseService,
+            AddRecurringExpenseParser addRecurringExpenseParser,
+            RecurringExpenseService recurringExpenseService,
             TelegramResponseFormatter formatter
     ) {
         this.userService = userService;
@@ -44,6 +50,8 @@ public class BotCommandRouter {
         this.analyticsService = analyticsService;
         this.addExpenseParser = addExpenseParser;
         this.pendingExpenseService = pendingExpenseService;
+        this.addRecurringExpenseParser = addRecurringExpenseParser;
+        this.recurringExpenseService = recurringExpenseService;
         this.formatter = formatter;
     }
 
@@ -76,6 +84,12 @@ public class BotCommandRouter {
                 var user = userService.registerOrUpdate(context);
                 return formatter.recent(expenseService.recent(user, 5));
             }
+            if (isCommand(text, "/edit")) {
+                return editExpense(context, commandBody(text));
+            }
+            if (isCommand(text, "/edit_latest")) {
+                return editLatestExpense(context, commandBody(text));
+            }
             if (isCommand(text, "/budget")) {
                 var user = userService.registerOrUpdate(context);
                 BigDecimal amount = parseBudget(commandBody(text));
@@ -86,6 +100,20 @@ public class BotCommandRouter {
             if (isCommand(text, "/email")) {
                 var user = userService.linkEmail(context, commandBody(text));
                 return formatter.emailLinked(user.getEmailAddress());
+            }
+            if (isCommand(text, "/recurring_add")) {
+                var user = userService.registerOrUpdate(context);
+                var request = addRecurringExpenseParser.parse(commandBody(text));
+                return formatter.recurringAdded(recurringExpenseService.add(user, request));
+            }
+            if (isCommand(text, "/recurring")) {
+                var user = userService.registerOrUpdate(context);
+                return formatter.recurringList(recurringExpenseService.listActive(user));
+            }
+            if (isCommand(text, "/recurring_delete") || isCommand(text, "/recurring_cancel")) {
+                var user = userService.registerOrUpdate(context);
+                Long id = parseId(commandBody(text), "Use /recurring_delete 3");
+                return formatter.recurringCancelled(recurringExpenseService.cancel(user, id));
             }
             if (isCommand(text, "/delete_latest")) {
                 var user = userService.registerOrUpdate(context);
@@ -118,6 +146,27 @@ public class BotCommandRouter {
         var request = addExpenseParser.parse(body);
         var expense = expenseService.add(user, request);
         return formatter.expenseAdded(expense, analyticsService.monthlySummary(user));
+    }
+
+    private String editExpense(TelegramUserContext context, String body) {
+        String[] parts = body.split("\\s+", 3);
+        if (parts.length < 3) {
+            throw new UserFacingException("Use /edit 12 amount 7.20 or /edit 12 category food");
+        }
+        Long expenseId = parseId(parts[0], "Use /edit 12 amount 7.20");
+        var user = userService.registerOrUpdate(context);
+        var expense = expenseService.edit(user, expenseId, parts[1], parts[2]);
+        return formatter.expenseEdited(expense, analyticsService.monthlySummary(user));
+    }
+
+    private String editLatestExpense(TelegramUserContext context, String body) {
+        String[] parts = body.split("\\s+", 2);
+        if (parts.length < 2) {
+            throw new UserFacingException("Use /edit_latest amount 7.20 or /edit_latest category food");
+        }
+        var user = userService.registerOrUpdate(context);
+        var expense = expenseService.editLatest(user, parts[0], parts[1]);
+        return formatter.expenseEdited(expense, analyticsService.monthlySummary(user));
     }
 
     private boolean shouldHandleAsPendingReceiptReply(Long telegramUserId, String text) {
@@ -160,6 +209,17 @@ public class BotCommandRouter {
             return amount;
         } catch (NumberFormatException e) {
             throw new UserFacingException("I could not read that budget. Try /budget 600");
+        }
+    }
+
+    private Long parseId(String rawValue, String errorMessage) {
+        if (!StringUtils.hasText(rawValue)) {
+            throw new UserFacingException(errorMessage);
+        }
+        try {
+            return Long.parseLong(rawValue.trim());
+        } catch (NumberFormatException e) {
+            throw new UserFacingException(errorMessage);
         }
     }
 

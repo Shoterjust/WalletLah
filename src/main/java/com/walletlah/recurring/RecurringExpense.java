@@ -1,5 +1,6 @@
-package com.walletlah.expense;
+package com.walletlah.recurring;
 
+import com.walletlah.expense.ExpenseCategory;
 import com.walletlah.user.WalletUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,14 +13,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "expenses")
-public class Expense {
+@Table(name = "recurring_expenses")
+public class RecurringExpense {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,83 +38,66 @@ public class Expense {
     @Column(nullable = false)
     private ExpenseCategory category;
 
+    @Column(nullable = false)
     private String description;
-
-    @Column(name = "expense_date", nullable = false)
-    private LocalDate expenseDate;
 
     private String merchant;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ExpenseSource source = ExpenseSource.MANUAL;
+    private RecurringFrequency frequency;
 
-    @Column(name = "receipt_image_file_id")
-    private String receiptImageFileId;
+    @Column(name = "next_run_date", nullable = false)
+    private LocalDate nextRunDate;
 
-    @Column(name = "recurring_expense_id")
-    private Long recurringExpenseId;
+    @Column(nullable = false)
+    private boolean active = true;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected Expense() {
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    protected RecurringExpense() {
     }
 
-    public Expense(WalletUser user, BigDecimal amount, ExpenseCategory category, String description, LocalDate expenseDate) {
-        this.user = user;
-        this.amount = amount;
-        this.category = category;
-        this.description = description;
-        this.expenseDate = expenseDate;
-        this.source = ExpenseSource.MANUAL;
-    }
-
-    public Expense(
+    public RecurringExpense(
             WalletUser user,
             BigDecimal amount,
             ExpenseCategory category,
             String description,
-            LocalDate expenseDate,
             String merchant,
-            ExpenseSource source,
-            String receiptImageFileId,
-            Long recurringExpenseId
+            RecurringFrequency frequency,
+            LocalDate nextRunDate
     ) {
         this.user = user;
         this.amount = amount;
         this.category = category;
         this.description = description;
-        this.expenseDate = expenseDate;
         this.merchant = merchant;
-        this.source = source;
-        this.receiptImageFileId = receiptImageFileId;
-        this.recurringExpenseId = recurringExpenseId;
-    }
-
-    public void updateAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public void updateCategory(ExpenseCategory category) {
-        this.category = category;
-    }
-
-    public void updateDescription(String description) {
-        this.description = description;
-    }
-
-    public void updateExpenseDate(LocalDate expenseDate) {
-        this.expenseDate = expenseDate;
-    }
-
-    public void updateMerchant(String merchant) {
-        this.merchant = merchant;
+        this.frequency = frequency;
+        this.nextRunDate = nextRunDate;
     }
 
     @PrePersist
     void prePersist() {
-        this.createdAt = Instant.now();
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+    public void advanceNextRunDate() {
+        this.nextRunDate = frequency.nextAfter(nextRunDate);
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 
     public Long getId() {
@@ -135,27 +120,27 @@ public class Expense {
         return description;
     }
 
-    public LocalDate getExpenseDate() {
-        return expenseDate;
-    }
-
     public String getMerchant() {
         return merchant;
     }
 
-    public ExpenseSource getSource() {
-        return source;
+    public RecurringFrequency getFrequency() {
+        return frequency;
     }
 
-    public String getReceiptImageFileId() {
-        return receiptImageFileId;
+    public LocalDate getNextRunDate() {
+        return nextRunDate;
     }
 
-    public Long getRecurringExpenseId() {
-        return recurringExpenseId;
+    public boolean isActive() {
+        return active;
     }
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

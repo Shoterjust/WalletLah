@@ -3,9 +3,13 @@ package com.walletlah.expense;
 import com.walletlah.common.MoneyUtils;
 import com.walletlah.common.UserFacingException;
 import com.walletlah.user.WalletUser;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class ExpenseService {
@@ -43,7 +47,24 @@ public class ExpenseService {
                 request.expenseDate(),
                 merchant,
                 ExpenseSource.RECEIPT_SCAN,
-                receiptImageFileId
+                receiptImageFileId,
+                null
+        );
+        return expenseRepository.save(expense);
+    }
+
+    @Transactional
+    public Expense addRecurringGenerated(WalletUser user, AddExpenseRequest request, String merchant, Long recurringExpenseId) {
+        Expense expense = new Expense(
+                user,
+                MoneyUtils.money(request.amount()),
+                request.category(),
+                request.description(),
+                request.expenseDate(),
+                merchant,
+                ExpenseSource.RECURRING,
+                null,
+                recurringExpenseId
         );
         return expenseRepository.save(expense);
     }
@@ -63,5 +84,64 @@ public class ExpenseService {
                 .orElseThrow(() -> new UserFacingException("No expenses to delete yet."));
         expenseRepository.delete(expense);
         return expense;
+    }
+
+    @Transactional
+    public Expense edit(WalletUser user, Long expenseId, String field, String value) {
+        Expense expense = expenseRepository.findByIdAndUser(expenseId, user)
+                .orElseThrow(() -> new UserFacingException("I could not find expense #" + expenseId + " for your account."));
+        applyEdit(expense, field, value);
+        return expense;
+    }
+
+    @Transactional
+    public Expense editLatest(WalletUser user, String field, String value) {
+        Expense expense = expenseRepository.findFirstByUserOrderByCreatedAtDescIdDesc(user)
+                .orElseThrow(() -> new UserFacingException("No expenses to edit yet."));
+        applyEdit(expense, field, value);
+        return expense;
+    }
+
+    private void applyEdit(Expense expense, String rawField, String rawValue) {
+        if (!StringUtils.hasText(rawField) || !StringUtils.hasText(rawValue)) {
+            throw new UserFacingException("Edit using: /edit 12 amount 7.20");
+        }
+
+        String field = rawField.trim().toLowerCase(Locale.ROOT);
+        String value = rawValue.trim();
+        switch (field) {
+            case "amount" -> expense.updateAmount(parseAmount(value));
+            case "category" -> expense.updateCategory(ExpenseCategory.from(value)
+                    .orElseThrow(() -> new UserFacingException("Unknown category. Use /categories to see valid categories.")));
+            case "description", "desc" -> expense.updateDescription(limit(value, 255));
+            case "date" -> expense.updateExpenseDate(parseDate(value));
+            case "merchant" -> expense.updateMerchant(limit(value, 255));
+            default -> throw new UserFacingException("Editable fields: amount, category, description, date, merchant.");
+        }
+    }
+
+    private BigDecimal parseAmount(String value) {
+        try {
+            BigDecimal amount = new BigDecimal(value.replace("S$", "").replace("$", "").trim());
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new UserFacingException("Amount must be more than zero.");
+            }
+            return MoneyUtils.money(amount);
+        } catch (NumberFormatException e) {
+            throw new UserFacingException("I could not read that amount. Try: /edit_latest amount 7.20");
+        }
+    }
+
+    private LocalDate parseDate(String value) {
+        try {
+            return LocalDate.parse(value);
+        } catch (RuntimeException e) {
+            throw new UserFacingException("I could not read that date. Try: /edit_latest date 2026-06-05");
+        }
+    }
+
+    private String limit(String value, int maxLength) {
+        String trimmed = value.trim();
+        return trimmed.length() <= maxLength ? trimmed : trimmed.substring(0, maxLength);
     }
 }

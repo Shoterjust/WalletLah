@@ -15,6 +15,8 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     Optional<Expense> findFirstByUserOrderByCreatedAtDescIdDesc(WalletUser user);
 
+    Optional<Expense> findByIdAndUser(Long id, WalletUser user);
+
     @Query("""
             select coalesce(sum(e.amount), 0)
             from Expense e

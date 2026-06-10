@@ -6,6 +6,7 @@ import com.walletlah.expense.ExpenseCategory;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.textract.model.AnalyzeExpenseResponse;
@@ -36,7 +37,7 @@ class ReceiptParserServiceTest {
 
         assertThat(result.merchant()).isEqualTo("Koufu");
         assertThat(result.amount()).isEqualByComparingTo("6.80");
-        assertThat(result.expenseDate()).isEqualTo("2026-06-05");
+        assertThat(result.expenseDate()).isEqualTo(LocalDate.of(2026, 6, 5));
         assertThat(result.category()).isEqualTo(ExpenseCategory.FOOD);
         assertThat(result.confidence()).isEqualByComparingTo("97.00");
     }
