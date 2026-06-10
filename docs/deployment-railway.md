@@ -18,6 +18,8 @@ Add these variables to the WalletLah app service, not the PostgreSQL service:
 TELEGRAM_BOT_ENABLED=true
 TELEGRAM_BOT_TOKEN=replace-with-botfather-token
 WALLETLAH_ZONE_ID=Asia/Singapore
+DASHBOARD_ALLOWED_ORIGINS=https://your-nextjs-dashboard.vercel.app
+DASHBOARD_LINK_CODE_TTL_MINUTES=10
 SPRING_DATASOURCE_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
 SPRING_DATASOURCE_USERNAME=${{Postgres.PGUSER}}
 SPRING_DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
@@ -84,6 +86,7 @@ Open Telegram and send these messages to the bot:
 
 ```text
 /start
+/dashboard_link
 /budget 600
 /add 5.50 food chicken rice
 /status
@@ -98,6 +101,7 @@ Open Telegram and send these messages to the bot:
 Expected behavior:
 
 - `/start` returns the welcome message.
+- `/dashboard_link` returns a 6-digit dashboard login code.
 - `/budget 600` saves this month's budget and returns a status summary.
 - `/add` creates a manual expense.
 - `/status` shows total spent, average daily spend, remaining budget, safe daily spend, and budget-used percentage.

@@ -4,6 +4,7 @@ import com.walletlah.analytics.AnalyticsService;
 import com.walletlah.budget.BudgetService;
 import com.walletlah.common.MoneyUtils;
 import com.walletlah.common.UserFacingException;
+import com.walletlah.dashboard.auth.DashboardLinkCodeService;
 import com.walletlah.expense.AddExpenseParser;
 import com.walletlah.expense.ExpenseCategory;
 import com.walletlah.expense.ExpenseService;
@@ -31,6 +32,7 @@ public class BotCommandRouter {
     private final PendingExpenseService pendingExpenseService;
     private final AddRecurringExpenseParser addRecurringExpenseParser;
     private final RecurringExpenseService recurringExpenseService;
+    private final DashboardLinkCodeService dashboardLinkCodeService;
     private final TelegramResponseFormatter formatter;
 
     public BotCommandRouter(
@@ -42,6 +44,7 @@ public class BotCommandRouter {
             PendingExpenseService pendingExpenseService,
             AddRecurringExpenseParser addRecurringExpenseParser,
             RecurringExpenseService recurringExpenseService,
+            DashboardLinkCodeService dashboardLinkCodeService,
             TelegramResponseFormatter formatter
     ) {
         this.userService = userService;
@@ -52,6 +55,7 @@ public class BotCommandRouter {
         this.pendingExpenseService = pendingExpenseService;
         this.addRecurringExpenseParser = addRecurringExpenseParser;
         this.recurringExpenseService = recurringExpenseService;
+        this.dashboardLinkCodeService = dashboardLinkCodeService;
         this.formatter = formatter;
     }
 
@@ -99,6 +103,10 @@ public class BotCommandRouter {
                 var budget = budgetService.setCurrentMonthBudget(user, amount);
                 return "Budget set for this month: " + MoneyUtils.format(budget.getAmount()) + "\n\n"
                         + formatter.status(analyticsService.monthlySummary(user));
+            }
+            if (isCommand(text, "/dashboard_link")) {
+                var user = userService.registerOrUpdate(context);
+                return formatter.dashboardLinkCode(dashboardLinkCodeService.issueCode(user));
             }
             if (isCommand(text, "/email")) {
                 var user = userService.linkEmail(context, commandBody(text));

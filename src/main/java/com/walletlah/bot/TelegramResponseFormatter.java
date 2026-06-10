@@ -38,6 +38,7 @@ public class TelegramResponseFormatter {
                 + "/edit_latest category food\n"
                 + "/budget 600\n"
                 + "/budget\n"
+                + "/dashboard_link\n"
                 + "/recurring_add 14.99 subscriptions Spotify monthly\n"
                 + "/recurring\n"
                 + "/recurring_delete 3\n"
@@ -55,6 +56,11 @@ public class TelegramResponseFormatter {
     public String emailLinked(String emailAddress) {
         return "Email linked for auto-logging: " + emailAddress + "\n\n"
                 + "Forwarded receipt and card transaction emails can now be matched to this WalletLah account.";
+    }
+
+    public String dashboardLinkCode(String code) {
+        return "Dashboard login code: " + code + "\n\n"
+                + "Use it on the WalletLah dashboard within 10 minutes.";
     }
 
     public String expenseAdded(Expense expense, SpendingSummary summary) {

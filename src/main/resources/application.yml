@@ -33,6 +33,9 @@ walletlah:
   email-ingest:
     enabled: ${EMAIL_INGEST_ENABLED:false}
     token: ${EMAIL_INGEST_TOKEN:}
+  dashboard:
+    allowed-origins: ${DASHBOARD_ALLOWED_ORIGINS:http://localhost:3000}
+    link-code-ttl-minutes: ${DASHBOARD_LINK_CODE_TTL_MINUTES:10}
   receipts:
     enabled: ${RECEIPT_SCAN_ENABLED:false}
     aws-region: ${AWS_REGION:ap-southeast-1}

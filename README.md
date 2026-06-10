@@ -16,6 +16,7 @@ WalletLah is a Telegram-first expense tracker for Singapore university students.
 /edit_latest category food
 /budget 600
 /budget
+/dashboard_link
 /email you@example.com
 /recurring_add 14.99 subscriptions Spotify monthly
 /recurring
@@ -48,6 +49,68 @@ docker compose up --build
 ```
 
 The bot uses long polling for the MVP, so no public HTTPS URL is needed for local development.
+
+## Dashboard API Foundation
+
+The backend now supports a session-based dashboard API for a future Next.js frontend.
+
+Telegram login flow:
+
+```text
+/dashboard_link
+```
+
+WalletLah replies with a 6-digit code. The dashboard exchanges that code for a Spring Security session cookie:
+
+```http
+POST /api/dashboard/auth/link-code
+Content-Type: application/json
+
+{
+  "code": "482913"
+}
+```
+
+Auth endpoints:
+
+```text
+POST /api/dashboard/auth/link-code
+GET /api/dashboard/auth/me
+POST /api/dashboard/auth/logout
+```
+
+Dashboard data endpoints:
+
+```text
+GET /api/dashboard/summary
+GET /api/expenses?month=2026-06&page=0&size=25
+POST /api/expenses
+PATCH /api/expenses/{id}
+DELETE /api/expenses/{id}
+GET /api/recurring-expenses
+POST /api/recurring-expenses
+DELETE /api/recurring-expenses/{id}
+```
+
+Expense filters:
+
+```text
+GET /api/expenses?month=2026-06&category=food
+GET /api/expenses?month=2026-06&source=RECURRING
+```
+
+Dashboard environment variables:
+
+```env
+DASHBOARD_ALLOWED_ORIGINS=http://localhost:3000
+DASHBOARD_LINK_CODE_TTL_MINUTES=10
+```
+
+For production, set `DASHBOARD_ALLOWED_ORIGINS` to the deployed Next.js URL, for example:
+
+```env
+DASHBOARD_ALLOWED_ORIGINS=https://walletlah.vercel.app
+```
 
 ## Budget And Analytics
 

@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -23,13 +25,35 @@ public class ExpenseService {
 
     @Transactional
     public Expense add(WalletUser user, AddExpenseRequest request) {
-        Expense expense = new Expense(
+        return addManual(
                 user,
-                MoneyUtils.money(request.amount()),
+                request.amount(),
                 request.category(),
                 request.description(),
-                request.expenseDate()
+                request.expenseDate(),
+                null
         );
+    }
+
+    @Transactional
+    public Expense addManual(
+            WalletUser user,
+            BigDecimal amount,
+            ExpenseCategory category,
+            String description,
+            LocalDate expenseDate,
+            String merchant
+    ) {
+        Expense expense = new Expense(
+                user,
+                validateAmount(amount),
+                category,
+                limit(description, 255),
+                expenseDate
+        );
+        if (StringUtils.hasText(merchant)) {
+            expense.updateMerchant(limit(merchant, 255));
+        }
         return expenseRepository.save(expense);
     }
 
@@ -79,6 +103,18 @@ public class ExpenseService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Page<Expense> dashboardPage(
+            WalletUser user,
+            LocalDate startInclusive,
+            LocalDate endExclusive,
+            ExpenseCategory category,
+            ExpenseSource source,
+            Pageable pageable
+    ) {
+        return expenseRepository.findDashboardPage(user, startInclusive, endExclusive, category, source, pageable);
+    }
+
     @Transactional
     public Expense deleteLatest(WalletUser user) {
         Expense expense = expenseRepository.findFirstByUserOrderByCreatedAtDescIdDesc(user)
@@ -88,10 +124,49 @@ public class ExpenseService {
     }
 
     @Transactional
+    public Expense delete(WalletUser user, Long expenseId) {
+        Expense expense = expenseRepository.findByIdAndUser(expenseId, user)
+                .orElseThrow(() -> new UserFacingException("I could not find expense #" + expenseId + " for your account."));
+        expenseRepository.delete(expense);
+        return expense;
+    }
+
+    @Transactional
     public Expense edit(WalletUser user, Long expenseId, String field, String value) {
         Expense expense = expenseRepository.findByIdAndUser(expenseId, user)
                 .orElseThrow(() -> new UserFacingException("I could not find expense #" + expenseId + " for your account."));
         applyEdit(expense, field, value);
+        return expense;
+    }
+
+    @Transactional
+    public Expense updateFromDashboard(
+            WalletUser user,
+            Long expenseId,
+            BigDecimal amount,
+            String category,
+            String description,
+            LocalDate expenseDate,
+            String merchant
+    ) {
+        Expense expense = expenseRepository.findByIdAndUser(expenseId, user)
+                .orElseThrow(() -> new UserFacingException("I could not find expense #" + expenseId + " for your account."));
+        if (amount != null) {
+            expense.updateAmount(validateAmount(amount));
+        }
+        if (StringUtils.hasText(category)) {
+            expense.updateCategory(ExpenseCategory.from(category)
+                    .orElseThrow(() -> new UserFacingException("Unknown category. Use a valid WalletLah category.")));
+        }
+        if (description != null) {
+            expense.updateDescription(limit(description, 255));
+        }
+        if (expenseDate != null) {
+            expense.updateExpenseDate(expenseDate);
+        }
+        if (merchant != null) {
+            expense.updateMerchant(limit(merchant, 255));
+        }
         return expense;
     }
 
@@ -124,13 +199,17 @@ public class ExpenseService {
     private BigDecimal parseAmount(String value) {
         try {
             BigDecimal amount = new BigDecimal(value.replace("S$", "").replace("$", "").trim());
-            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new UserFacingException("Amount must be more than zero.");
-            }
-            return MoneyUtils.money(amount);
+            return validateAmount(amount);
         } catch (NumberFormatException e) {
             throw new UserFacingException("I could not read that amount. Try: /edit_latest amount 7.20");
         }
+    }
+
+    private BigDecimal validateAmount(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new UserFacingException("Amount must be more than zero.");
+        }
+        return MoneyUtils.money(amount);
     }
 
     private LocalDate parseDate(String value) {
@@ -142,6 +221,9 @@ public class ExpenseService {
     }
 
     private String limit(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
         String trimmed = value.trim();
         return trimmed.length() <= maxLength ? trimmed : trimmed.substring(0, maxLength);
     }

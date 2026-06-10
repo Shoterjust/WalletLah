@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +14,25 @@ import org.springframework.data.repository.query.Param;
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     List<Expense> findByUserOrderByExpenseDateDescCreatedAtDescIdDesc(WalletUser user, Pageable pageable);
+
+    @Query("""
+            select e
+            from Expense e
+            where e.user = :user
+              and e.expenseDate >= :startInclusive
+              and e.expenseDate < :endExclusive
+              and (:category is null or e.category = :category)
+              and (:source is null or e.source = :source)
+            order by e.expenseDate desc, e.createdAt desc, e.id desc
+            """)
+    Page<Expense> findDashboardPage(
+            @Param("user") WalletUser user,
+            @Param("startInclusive") LocalDate startInclusive,
+            @Param("endExclusive") LocalDate endExclusive,
+            @Param("category") ExpenseCategory category,
+            @Param("source") ExpenseSource source,
+            Pageable pageable
+    );
 
     Optional<Expense> findFirstByUserOrderByCreatedAtDescIdDesc(WalletUser user);
 
