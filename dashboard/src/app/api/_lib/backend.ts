@@ -37,35 +37,40 @@ export async function backendFetch(path: string, init: RequestInit = {}) {
   }
 }
 
-export async function proxyResponse(response: Response) {
+type ProxyOptions = {
+  backendSessionId?: string;
+  clearSession?: boolean;
+};
+
+export async function proxyResponse(response: Response, options: ProxyOptions = {}) {
   const contentType = response.headers.get("content-type") ?? "application/json";
   const body = await response.text();
-  return new NextResponse(body, {
+  const nextResponse = new NextResponse(body, {
     status: response.status,
     headers: {
       "content-type": contentType,
     },
   });
-}
 
-export async function setBackendSessionFrom(response: Response) {
-  const setCookie = response.headers.get("set-cookie");
-  const match = setCookie?.match(/JSESSIONID=([^;]+)/);
-  if (!match) {
-    return;
+  if (options.backendSessionId) {
+    nextResponse.cookies.set(sessionCookieName, options.backendSessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
   }
 
-  const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName, match[1], {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  if (options.clearSession) {
+    nextResponse.cookies.delete(sessionCookieName);
+  }
+
+  return nextResponse;
 }
 
-export async function clearBackendSession() {
-  const cookieStore = await cookies();
-  cookieStore.delete(sessionCookieName);
+export function backendSessionIdFrom(response: Response) {
+  const setCookie = response.headers.get("set-cookie");
+  const match = setCookie?.match(/JSESSIONID=([^;]+)/);
+  return match?.[1] ?? null;
 }
