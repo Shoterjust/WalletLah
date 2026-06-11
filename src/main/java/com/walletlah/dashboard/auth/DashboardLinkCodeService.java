@@ -63,7 +63,7 @@ public class DashboardLinkCodeService {
     public WalletUser consumeCode(String rawCode) {
         String code = normalizeCode(rawCode);
         Instant now = Instant.now(clock);
-        DashboardLinkCode linkCode = linkCodeRepository.findByCodeHashAndConsumedAtIsNullOrderByCreatedAtDesc(hash(code))
+        DashboardLinkCode linkCode = linkCodeRepository.findUsableByCodeHashWithUser(hash(code))
                 .stream()
                 .filter(existing -> existing.isUsable(now))
                 .findFirst()
