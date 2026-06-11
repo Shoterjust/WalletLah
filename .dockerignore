@@ -4,6 +4,11 @@
 .codex
 .agents
 target
+dashboard/.next
+dashboard/node_modules
+dashboard/out
+dashboard/.npm-cache
+dashboard/tsconfig.tsbuildinfo
 *.log
 .env
 .env.*

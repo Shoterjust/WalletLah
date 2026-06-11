@@ -148,6 +148,32 @@ A Telegram `404 Not Found` usually means the URL is malformed or the token is wr
 - App service variables are configured.
 - `TELEGRAM_BOT_ENABLED=true`.
 - `TELEGRAM_BOT_TOKEN` is valid.
+- `DASHBOARD_ALLOWED_ORIGINS` matches the deployed Next.js dashboard URL.
 - `/actuator/health` returns `UP`.
 - Telegram `/start` replies.
 - `/budget`, `/add`, `/status`, `/recent`, and `/recurring_add` have been smoke-tested.
+
+## Next.js Dashboard Deployment
+
+Deploy the `dashboard/` directory as a separate Vercel project.
+
+Vercel project settings:
+
+```text
+Root Directory: dashboard
+Build Command: npm run build
+Output Directory: .next
+Install Command: npm install
+```
+
+Vercel environment variable:
+
+```env
+WALLETLAH_API_BASE_URL=https://your-walletlah-service.up.railway.app
+```
+
+After Vercel deploys, copy the Vercel app URL into the Railway backend variable:
+
+```env
+DASHBOARD_ALLOWED_ORIGINS=https://your-walletlah-dashboard.vercel.app
+```

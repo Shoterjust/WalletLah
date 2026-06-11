@@ -2,6 +2,11 @@
 
 WalletLah is a Telegram-first expense tracker for Singapore university students. The MVP focuses on logging expenses in a few seconds, checking monthly spending, and knowing a safe daily spend for the rest of the month.
 
+The repository now contains:
+
+- Spring Boot Telegram bot and API backend in `src/`
+- Next.js dashboard MVP in `dashboard/`
+
 ## MVP Commands
 
 ```text
@@ -111,6 +116,41 @@ For production, set `DASHBOARD_ALLOWED_ORIGINS` to the deployed Next.js URL, for
 ```env
 DASHBOARD_ALLOWED_ORIGINS=https://walletlah.vercel.app
 ```
+
+## Next.js Dashboard
+
+The dashboard app lives in `dashboard/`.
+
+Local setup:
+
+```powershell
+cd dashboard
+Copy-Item .env.example .env.local
+npm install
+npm run dev
+```
+
+The dashboard expects:
+
+```env
+WALLETLAH_API_BASE_URL=http://localhost:8080
+```
+
+Production setup:
+
+- Deploy the Spring Boot backend on Railway.
+- Deploy `dashboard/` on Vercel.
+- Set Vercel `WALLETLAH_API_BASE_URL` to the Railway backend URL.
+- Set Railway `DASHBOARD_ALLOWED_ORIGINS` to the Vercel dashboard URL.
+
+Dashboard MVP features:
+
+- Telegram link-code login
+- Monthly summary cards
+- Expense table with filters
+- Add, edit, and delete expenses
+- Category breakdown
+- Add and delete recurring expenses
 
 ## Budget And Analytics
 
