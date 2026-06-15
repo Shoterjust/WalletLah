@@ -10,6 +10,7 @@ import com.walletlah.expense.AddExpenseRequest;
 import com.walletlah.expense.Expense;
 import com.walletlah.expense.ExpenseCategory;
 import com.walletlah.expense.ExpenseService;
+import com.walletlah.expense.ExpenseSource;
 import com.walletlah.user.WalletUser;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -58,5 +59,48 @@ class PendingExpenseServiceTest {
         verify(expenseService).addReceiptScan(eq(user), requestCaptor.capture(), eq("Koufu"), eq("telegram-file-id"));
         assertThat(requestCaptor.getValue().category()).isEqualTo(ExpenseCategory.FOOD);
         assertThat(requestCaptor.getValue().description()).isEqualTo("Receipt: Koufu");
+    }
+
+    @Test
+    void confirmsPendingEmailIntoEmailExpense() {
+        WalletUser user = new WalletUser(123L, 456L, "justin", "Justin");
+        PendingExpense pending = new PendingExpense(
+                123L,
+                "Koufu",
+                new BigDecimal("6.80"),
+                ExpenseCategory.FOOD,
+                LocalDate.of(2026, 6, 5),
+                "DBS",
+                "message-1",
+                "alerts@dbs.com",
+                "DBS transaction",
+                "raw text"
+        );
+        pending.prePersist();
+        Expense savedExpense = new Expense(
+                user,
+                new BigDecimal("6.80"),
+                ExpenseCategory.FOOD,
+                "Email: Koufu",
+                LocalDate.of(2026, 6, 5),
+                "Koufu",
+                ExpenseSource.EMAIL_INGEST,
+                null,
+                null
+        );
+
+        when(repository.findFirstByTelegramUserIdAndStatusOrderByCreatedAtDesc(123L, PendingExpenseStatus.PENDING_CONFIRMATION))
+                .thenReturn(Optional.of(pending));
+        when(expenseService.addEmailIngest(eq(user), any(AddExpenseRequest.class), eq("Koufu")))
+                .thenReturn(savedExpense);
+
+        Expense expense = service.confirm(user);
+
+        assertThat(expense.getSource()).isEqualTo(ExpenseSource.EMAIL_INGEST);
+        assertThat(pending.getStatus()).isEqualTo(PendingExpenseStatus.CONFIRMED);
+
+        ArgumentCaptor<AddExpenseRequest> requestCaptor = ArgumentCaptor.forClass(AddExpenseRequest.class);
+        verify(expenseService).addEmailIngest(eq(user), requestCaptor.capture(), eq("Koufu"));
+        assertThat(requestCaptor.getValue().description()).isEqualTo("Email: Koufu");
     }
 }

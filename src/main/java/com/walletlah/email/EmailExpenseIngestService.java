@@ -1,11 +1,13 @@
 package com.walletlah.email;
 
+import com.walletlah.bot.TelegramBotService;
+import com.walletlah.bot.TelegramResponseFormatter;
 import com.walletlah.common.UserFacingException;
-import com.walletlah.expense.AddExpenseRequest;
-import com.walletlah.expense.Expense;
-import com.walletlah.expense.ExpenseService;
+import com.walletlah.receipt.PendingExpense;
+import com.walletlah.receipt.PendingExpenseService;
 import com.walletlah.user.UserService;
 import com.walletlah.user.WalletUser;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -14,20 +16,26 @@ import org.springframework.util.StringUtils;
 public class EmailExpenseIngestService {
 
     private final UserService userService;
-    private final ExpenseService expenseService;
+    private final PendingExpenseService pendingExpenseService;
     private final EmailExpenseParser parser;
     private final EmailExpenseIngestRepository ingestRepository;
+    private final Optional<TelegramBotService> telegramBotService;
+    private final TelegramResponseFormatter formatter;
 
     public EmailExpenseIngestService(
             UserService userService,
-            ExpenseService expenseService,
+            PendingExpenseService pendingExpenseService,
             EmailExpenseParser parser,
-            EmailExpenseIngestRepository ingestRepository
+            EmailExpenseIngestRepository ingestRepository,
+            Optional<TelegramBotService> telegramBotService,
+            TelegramResponseFormatter formatter
     ) {
         this.userService = userService;
-        this.expenseService = expenseService;
+        this.pendingExpenseService = pendingExpenseService;
         this.parser = parser;
         this.ingestRepository = ingestRepository;
+        this.telegramBotService = telegramBotService;
+        this.formatter = formatter;
     }
 
     @Transactional
@@ -42,22 +50,31 @@ public class EmailExpenseIngestService {
         }
 
         ParsedEmailExpense parsed = parser.parse(request);
-        Expense expense = expenseService.add(user, new AddExpenseRequest(
+        PendingExpense pendingExpense = pendingExpenseService.createEmail(
+                user.getTelegramUserId(),
                 parsed.amount(),
                 parsed.category(),
-                parsed.description(),
-                parsed.expenseDate()
-        ));
+                parsed.merchant(),
+                parsed.expenseDate(),
+                parsed.sourceProvider(),
+                sourceMessageId,
+                normalizeOptional(request.sender(), 500),
+                normalizeOptional(request.subject(), 1000),
+                normalizeOptional(parsed.rawText(), 5000)
+        );
 
         ingestRepository.save(new EmailExpenseIngest(
                 user,
-                expense,
+                null,
                 sourceMessageId,
                 normalizeOptional(request.sender(), 500),
-                normalizeOptional(request.subject(), 1000)
+                normalizeOptional(request.subject(), 1000),
+                normalizeOptional(parsed.sourceProvider(), 50)
         ));
 
-        return EmailExpenseIngestResult.logged(expense);
+        telegramBotService.ifPresent(bot -> bot.send(user.getTelegramChatId(), formatter.emailExpensePending(pendingExpense)));
+
+        return EmailExpenseIngestResult.pending(pendingExpense);
     }
 
     private String normalizeOptional(String value, int maxLength) {

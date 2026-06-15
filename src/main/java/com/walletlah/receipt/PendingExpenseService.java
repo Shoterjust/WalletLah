@@ -45,6 +45,33 @@ public class PendingExpenseService {
     }
 
     @Transactional
+    public PendingExpense createEmail(
+            Long telegramUserId,
+            BigDecimal amount,
+            ExpenseCategory category,
+            String merchant,
+            LocalDate expenseDate,
+            String sourceProvider,
+            String sourceMessageId,
+            String sender,
+            String subject,
+            String rawText
+    ) {
+        return pendingExpenseRepository.save(new PendingExpense(
+                telegramUserId,
+                merchant,
+                amount,
+                category,
+                expenseDate,
+                sourceProvider,
+                sourceMessageId,
+                sender,
+                subject,
+                rawText
+        ));
+    }
+
+    @Transactional
     public Optional<PendingExpense> activePending(Long telegramUserId) {
         Optional<PendingExpense> pending = pendingExpenseRepository.findFirstByTelegramUserIdAndStatusOrderByCreatedAtDesc(
                 telegramUserId,
@@ -71,10 +98,7 @@ public class PendingExpenseService {
 
     @Transactional
     public Expense confirm(WalletUser user) {
-        PendingExpense pending = requireActivePending(
-                user.getTelegramUserId(),
-                "No pending receipt scan to save. Send a receipt photo first."
-        );
+        PendingExpense pending = requireActivePending(user.getTelegramUserId(), "No pending expense to save.");
 
         if (pending.getAmount() == null) {
             throw new UserFacingException("I still need the amount before saving. Reply like: amount 7.20");
@@ -86,37 +110,29 @@ public class PendingExpenseService {
             throw new UserFacingException("I still need the date before saving. Reply like: date 2026-06-05");
         }
 
-        String description = StringUtils.hasText(pending.getMerchant())
-                ? "Receipt: " + pending.getMerchant()
-                : "Receipt scan";
-        Expense expense = expenseService.addReceiptScan(
-                user,
-                new AddExpenseRequest(
-                        pending.getAmount(),
-                        pending.getCategory(),
-                        description,
-                        pending.getExpenseDate()
-                ),
-                pending.getMerchant(),
-                pending.getReceiptImageFileId()
+        AddExpenseRequest request = new AddExpenseRequest(
+                pending.getAmount(),
+                pending.getCategory(),
+                descriptionFor(pending),
+                pending.getExpenseDate()
         );
+        Expense expense = pending.getSource() == PendingExpenseSource.EMAIL_INGEST
+                ? expenseService.addEmailIngest(user, request, pending.getMerchant())
+                : expenseService.addReceiptScan(user, request, pending.getMerchant(), pending.getReceiptImageFileId());
         pending.markConfirmed();
         return expense;
     }
 
     @Transactional
     public PendingExpense cancel(Long telegramUserId) {
-        PendingExpense pending = requireActivePending(telegramUserId, "No pending receipt scan to cancel.");
+        PendingExpense pending = requireActivePending(telegramUserId, "No pending expense to cancel.");
         pending.markCancelled();
         return pending;
     }
 
     @Transactional
     public PendingExpense edit(Long telegramUserId, String text) {
-        PendingExpense pending = requireActivePending(
-                telegramUserId,
-                "No pending receipt scan to edit. Send a receipt photo first."
-        );
+        PendingExpense pending = requireActivePending(telegramUserId, "No pending expense to edit.");
         String[] parts = text.trim().split("\\s+", 2);
         if (parts.length < 2 || !StringUtils.hasText(parts[1])) {
             throw new UserFacingException("Edit using: amount 7.20, category food, date 2026-06-05, or merchant Koufu");
@@ -142,9 +158,20 @@ public class PendingExpenseService {
         ).orElseThrow(() -> new UserFacingException(missingMessage));
         expireIfNeeded(pending);
         if (pending.getStatus() == PendingExpenseStatus.EXPIRED) {
-            throw new UserFacingException("That pending receipt scan expired. Please send the receipt photo again.");
+            throw new UserFacingException("That pending expense expired. Please send it again.");
         }
         return pending;
+    }
+
+    private String descriptionFor(PendingExpense pending) {
+        if (pending.getSource() == PendingExpenseSource.EMAIL_INGEST) {
+            return StringUtils.hasText(pending.getMerchant())
+                    ? "Email: " + pending.getMerchant()
+                    : "Email transaction";
+        }
+        return StringUtils.hasText(pending.getMerchant())
+                ? "Receipt: " + pending.getMerchant()
+                : "Receipt scan";
     }
 
     private void expireIfNeeded(PendingExpense pending) {

@@ -43,6 +43,22 @@ public class PendingExpense {
     @Column(name = "receipt_image_file_id")
     private String receiptImageFileId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PendingExpenseSource source = PendingExpenseSource.RECEIPT_SCAN;
+
+    @Column(name = "source_provider")
+    private String sourceProvider;
+
+    @Column(name = "source_message_id")
+    private String sourceMessageId;
+
+    @Column(name = "source_sender")
+    private String sourceSender;
+
+    @Column(name = "source_subject")
+    private String sourceSubject;
+
     @Column(precision = 5, scale = 2)
     private BigDecimal confidence;
 
@@ -67,7 +83,33 @@ public class PendingExpense {
         this.expenseDate = result.expenseDate();
         this.rawOcrText = result.rawOcrText();
         this.receiptImageFileId = receiptImageFileId;
+        this.source = PendingExpenseSource.RECEIPT_SCAN;
         this.confidence = result.confidence();
+    }
+
+    public PendingExpense(
+            Long telegramUserId,
+            String merchant,
+            BigDecimal amount,
+            ExpenseCategory category,
+            LocalDate expenseDate,
+            String sourceProvider,
+            String sourceMessageId,
+            String sourceSender,
+            String sourceSubject,
+            String rawText
+    ) {
+        this.telegramUserId = telegramUserId;
+        this.merchant = merchant;
+        this.amount = amount;
+        this.category = category;
+        this.expenseDate = expenseDate;
+        this.source = PendingExpenseSource.EMAIL_INGEST;
+        this.sourceProvider = sourceProvider;
+        this.sourceMessageId = sourceMessageId;
+        this.sourceSender = sourceSender;
+        this.sourceSubject = sourceSubject;
+        this.rawOcrText = rawText;
     }
 
     @PrePersist
@@ -140,6 +182,26 @@ public class PendingExpense {
 
     public String getReceiptImageFileId() {
         return receiptImageFileId;
+    }
+
+    public PendingExpenseSource getSource() {
+        return source;
+    }
+
+    public String getSourceProvider() {
+        return sourceProvider;
+    }
+
+    public String getSourceMessageId() {
+        return sourceMessageId;
+    }
+
+    public String getSourceSender() {
+        return sourceSender;
+    }
+
+    public String getSourceSubject() {
+        return sourceSubject;
     }
 
     public BigDecimal getConfidence() {

@@ -1,18 +1,18 @@
 package com.walletlah.email;
 
-import com.walletlah.expense.Expense;
+import com.walletlah.receipt.PendingExpense;
 
 record EmailExpenseIngestResult(
         boolean duplicate,
-        Expense expense,
+        PendingExpense pendingExpense,
         String message
 ) {
 
-    static EmailExpenseIngestResult logged(Expense expense) {
-        return new EmailExpenseIngestResult(false, expense, "Logged expense from email.");
+    static EmailExpenseIngestResult pending(PendingExpense pendingExpense) {
+        return new EmailExpenseIngestResult(false, pendingExpense, "Sent transaction to Telegram for confirmation.");
     }
 
     static EmailExpenseIngestResult alreadyLogged() {
-        return new EmailExpenseIngestResult(true, null, "That email was already logged.");
+        return new EmailExpenseIngestResult(true, null, "That email was already received.");
     }
 }

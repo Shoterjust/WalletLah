@@ -8,6 +8,7 @@ import com.walletlah.expense.ExpenseCategory;
 import com.walletlah.expense.ExpenseSource;
 import com.walletlah.expense.RecentExpenseView;
 import com.walletlah.receipt.PendingExpense;
+import com.walletlah.receipt.PendingExpenseSource;
 import com.walletlah.recurring.RecurringExpense;
 import java.math.BigDecimal;
 import java.util.List;
@@ -83,29 +84,36 @@ public class TelegramResponseFormatter {
                 + pendingInstructions(pendingExpense);
     }
 
+    public String emailExpensePending(PendingExpense pendingExpense) {
+        return "Detected email transaction.\n\n"
+                + pendingReceiptDetails(pendingExpense)
+                + "\n\n"
+                + pendingInstructions(pendingExpense);
+    }
+
     public String receiptEdited(PendingExpense pendingExpense) {
-        return "Updated pending receipt.\n\n"
+        return "Updated pending " + pendingNoun(pendingExpense) + ".\n\n"
                 + pendingReceiptDetails(pendingExpense)
                 + "\n\n"
                 + pendingInstructions(pendingExpense);
     }
 
     public String pendingReceiptInstructions(PendingExpense pendingExpense) {
-        return "You have a pending receipt scan.\n\n"
+        return "You have a pending " + pendingNoun(pendingExpense) + ".\n\n"
                 + pendingReceiptDetails(pendingExpense)
                 + "\n\n"
                 + pendingInstructions(pendingExpense);
     }
 
     public String receiptSaved(Expense expense, SpendingSummary summary) {
-        return "Saved receipt expense: " + MoneyUtils.format(expense.getAmount()) + " "
+        return "Saved " + savedSourceLabel(expense.getSource()) + " expense: " + MoneyUtils.format(expense.getAmount()) + " "
                 + expense.getCategory().displayName() + " - " + expense.getDescription() + "\n\n"
                 + compactStatus(summary);
     }
 
     public String receiptCancelled(PendingExpense pendingExpense) {
-        return "Cancelled pending receipt from "
-                + (StringUtils.hasText(pendingExpense.getMerchant()) ? pendingExpense.getMerchant() : "receipt scan")
+        return "Cancelled pending " + pendingNoun(pendingExpense) + " from "
+                + (StringUtils.hasText(pendingExpense.getMerchant()) ? pendingExpense.getMerchant() : pendingNoun(pendingExpense))
                 + ". Nothing was saved.";
     }
 
@@ -257,11 +265,18 @@ public class TelegramResponseFormatter {
     }
 
     private String pendingReceiptDetails(PendingExpense pendingExpense) {
-        return "Merchant: " + valueOrMissing(pendingExpense.getMerchant()) + "\n"
+        String sourceLine = pendingExpense.getSource() == PendingExpenseSource.EMAIL_INGEST
+                ? "Source: " + valueOrMissing(pendingExpense.getSourceProvider()) + "\n"
+                : "";
+        String confidenceLine = pendingExpense.getSource() == PendingExpenseSource.EMAIL_INGEST
+                ? ""
+                : "\nConfidence: " + (pendingExpense.getConfidence() == null ? "Unknown" : pendingExpense.getConfidence().toPlainString() + "%");
+        return sourceLine
+                + "Merchant: " + valueOrMissing(pendingExpense.getMerchant()) + "\n"
                 + "Amount: " + (pendingExpense.getAmount() == null ? "Not found" : MoneyUtils.format(pendingExpense.getAmount())) + "\n"
                 + "Date: " + valueOrMissing(pendingExpense.getExpenseDate() == null ? null : pendingExpense.getExpenseDate().toString()) + "\n"
-                + "Category: " + (pendingExpense.getCategory() == null ? "Not found" : pendingExpense.getCategory().displayName()) + "\n"
-                + "Confidence: " + (pendingExpense.getConfidence() == null ? "Unknown" : pendingExpense.getConfidence().toPlainString() + "%");
+                + "Category: " + (pendingExpense.getCategory() == null ? "Not found" : pendingExpense.getCategory().displayName())
+                + confidenceLine;
     }
 
     private String pendingInstructions(PendingExpense pendingExpense) {
@@ -284,9 +299,28 @@ public class TelegramResponseFormatter {
         if (source == ExpenseSource.RECEIPT_SCAN) {
             return " [receipt]";
         }
+        if (source == ExpenseSource.EMAIL_INGEST) {
+            return " [email]";
+        }
         if (source == ExpenseSource.RECURRING) {
             return " [recurring]";
         }
         return "";
+    }
+
+    private String savedSourceLabel(ExpenseSource source) {
+        if (source == ExpenseSource.EMAIL_INGEST) {
+            return "email";
+        }
+        if (source == ExpenseSource.RECEIPT_SCAN) {
+            return "receipt";
+        }
+        return "new";
+    }
+
+    private String pendingNoun(PendingExpense pendingExpense) {
+        return pendingExpense.getSource() == PendingExpenseSource.EMAIL_INGEST
+                ? "email transaction"
+                : "receipt scan";
     }
 }

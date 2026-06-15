@@ -1,6 +1,6 @@
 package com.walletlah.email;
 
-import com.walletlah.expense.Expense;
+import com.walletlah.receipt.PendingExpense;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -13,14 +13,14 @@ public record EmailExpenseIngestResponse(
         LocalDate expenseDate
 ) {
 
-    static EmailExpenseIngestResponse logged(Expense expense) {
+    static EmailExpenseIngestResponse pending(PendingExpense pendingExpense) {
         return new EmailExpenseIngestResponse(
-                "logged",
-                "Expense logged from email.",
-                expense.getAmount(),
-                expense.getCategory().displayName(),
-                expense.getDescription(),
-                expense.getExpenseDate()
+                "pending_confirmation",
+                "Transaction sent to Telegram for confirmation.",
+                pendingExpense.getAmount(),
+                pendingExpense.getCategory() == null ? null : pendingExpense.getCategory().displayName(),
+                pendingExpense.getMerchant(),
+                pendingExpense.getExpenseDate()
         );
     }
 

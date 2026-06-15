@@ -37,18 +37,29 @@ public class EmailExpenseIngest {
 
     private String subject;
 
+    @Column(name = "source_provider")
+    private String sourceProvider;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     protected EmailExpenseIngest() {
     }
 
-    public EmailExpenseIngest(WalletUser user, Expense expense, String sourceMessageId, String sender, String subject) {
+    public EmailExpenseIngest(
+            WalletUser user,
+            Expense expense,
+            String sourceMessageId,
+            String sender,
+            String subject,
+            String sourceProvider
+    ) {
         this.user = user;
         this.expense = expense;
         this.sourceMessageId = sourceMessageId;
         this.sender = sender;
         this.subject = subject;
+        this.sourceProvider = sourceProvider;
     }
 
     @PrePersist

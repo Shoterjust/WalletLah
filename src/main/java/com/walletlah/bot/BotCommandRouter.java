@@ -205,7 +205,7 @@ public class BotCommandRouter {
         }
         return pendingExpenseService.activePending(context.telegramUserId())
                 .map(formatter::pendingReceiptInstructions)
-                .orElse("No pending receipt scan. Send a receipt photo first, or log manually with /add 5.50 food chicken rice");
+                .orElse("No pending expense. Send a receipt photo first, wait for an email transaction, or log manually with /add 5.50 food chicken rice");
     }
 
     private BigDecimal parseBudget(String body) {

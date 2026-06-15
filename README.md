@@ -369,7 +369,7 @@ Known limitations:
 
 ## Email Receipt Auto-Logging
 
-WalletLah can auto-log expenses from forwarded receipt or card transaction emails.
+WalletLah can detect expenses from forwarded receipt or card transaction emails and send them to Telegram for confirmation before saving.
 
 MVP flow:
 
@@ -407,13 +407,41 @@ curl -X POST http://localhost:8080/api/email-expenses \
   }'
 ```
 
-5. Check Telegram:
+5. Check Telegram. WalletLah sends a pending confirmation:
+
+```text
+Detected email transaction.
+
+Source: GENERIC
+Merchant: MCDONALD'S
+Amount: S$12.30
+Date: 2026-06-05
+Category: Food
+
+Reply YES to save, NO to cancel, or edit using:
+amount 7.20
+category food
+date 2026-06-05
+merchant Koufu
+```
+
+6. Reply `YES` to save, `NO` to ignore, or edit a field first. After saving, check:
 
 ```text
 /recent
 ```
 
-The endpoint is intended to be called by an email automation tool such as Make, Zapier, or Google Apps Script. The automation should send the original recipient email, subject, body, sender, and a stable message ID. WalletLah uses the message ID to avoid logging the same email twice.
+The endpoint is intended to be called by an email automation tool such as Make, Zapier, or Google Apps Script. The automation should send the original recipient email, subject, body, sender, and a stable message ID. WalletLah uses the message ID to avoid sending the same email to Telegram twice.
+
+Supported parser strategy:
+
+- DBS/POSB-specific parser
+- OCBC-specific parser
+- UOB-specific parser
+- Trust-specific parser
+- YouTrip-specific parser
+- Revolut-specific parser
+- Generic fallback parser
 
 For production, the app must be deployed at a public HTTPS URL before an email automation service can call `/api/email-expenses`.
 

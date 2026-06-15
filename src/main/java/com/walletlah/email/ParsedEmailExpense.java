@@ -7,7 +7,9 @@ import java.time.LocalDate;
 record ParsedEmailExpense(
         BigDecimal amount,
         ExpenseCategory category,
-        String description,
-        LocalDate expenseDate
+        String merchant,
+        LocalDate expenseDate,
+        String sourceProvider,
+        String rawText
 ) {
 }

@@ -79,6 +79,22 @@ public class ExpenseService {
     }
 
     @Transactional
+    public Expense addEmailIngest(WalletUser user, AddExpenseRequest request, String merchant) {
+        Expense expense = new Expense(
+                user,
+                MoneyUtils.money(request.amount()),
+                request.category(),
+                request.description(),
+                request.expenseDate(),
+                merchant,
+                ExpenseSource.EMAIL_INGEST,
+                null,
+                null
+        );
+        return expenseRepository.save(expense);
+    }
+
+    @Transactional
     public Expense addRecurringGenerated(WalletUser user, AddExpenseRequest request, String merchant, Long recurringExpenseId) {
         Expense expense = new Expense(
                 user,

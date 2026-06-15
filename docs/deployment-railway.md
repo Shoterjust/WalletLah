@@ -34,6 +34,8 @@ EMAIL_INGEST_ENABLED=true
 EMAIL_INGEST_TOKEN=replace-with-long-random-secret
 ```
 
+Email ingest now sends parsed transactions to Telegram for confirmation before saving. Keep `TELEGRAM_BOT_ENABLED=true` in production so users receive the confirmation prompt.
+
 Optional receipt scanning:
 
 ```env

@@ -39,7 +39,7 @@ public class EmailExpenseIngestController {
             if (result.duplicate()) {
                 return ResponseEntity.ok(EmailExpenseIngestResponse.duplicate(result.message()));
             }
-            return ResponseEntity.ok(EmailExpenseIngestResponse.logged(result.expense()));
+            return ResponseEntity.ok(EmailExpenseIngestResponse.pending(result.pendingExpense()));
         } catch (UserFacingException e) {
             return ResponseEntity.badRequest().body(EmailExpenseIngestResponse.rejected(e.getMessage()));
         }
