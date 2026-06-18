@@ -431,7 +431,12 @@ merchant Koufu
 /recent
 ```
 
-The endpoint is intended to be called by an email automation tool such as Make, Zapier, or Google Apps Script. The automation should send the original recipient email, subject, body, sender, and a stable message ID. WalletLah uses the message ID to avoid sending the same email to Telegram twice.
+The endpoint is intended to be called by an email automation tool such as Google Apps Script, Make, or Zapier. The automation should send the original recipient email, subject, body, sender, and a stable message ID. WalletLah uses the message ID to avoid sending the same email to Telegram twice.
+
+The repository includes a ready-to-paste Gmail automation script:
+
+- Script: [integrations/google-apps-script/walletlah-gmail-ingest.gs](integrations/google-apps-script/walletlah-gmail-ingest.gs)
+- Setup guide: [docs/gmail-apps-script-ingest.md](docs/gmail-apps-script-ingest.md)
 
 Supported parser strategy:
 

@@ -36,6 +36,11 @@ EMAIL_INGEST_TOKEN=replace-with-long-random-secret
 
 Email ingest now sends parsed transactions to Telegram for confirmation before saving. Keep `TELEGRAM_BOT_ENABLED=true` in production so users receive the confirmation prompt.
 
+For Gmail polling, use the included Google Apps Script integration after the Railway backend is live:
+
+- Script: `integrations/google-apps-script/walletlah-gmail-ingest.gs`
+- Guide: `docs/gmail-apps-script-ingest.md`
+
 Optional receipt scanning:
 
 ```env
